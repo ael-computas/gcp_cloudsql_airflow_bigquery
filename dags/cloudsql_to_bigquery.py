@@ -146,8 +146,10 @@ def datatype_to_bq(datatype):
     Simple attempt to do some basic datatypes.
     Fallback to String for unknowns and then you can fix it later in bigquery.
     """
+    if "DATETIME" in datatype:
+        return "DATETIME"
     if "DATE" in datatype:
-        return "TIMESTAMP"  # export returns in YYYY-MM-DD hh:mm:ss and bigquery import does not like this.
+        return "DATE"
     if "INT" in datatype:
         return "INTEGER"
     if "FLOAT" in datatype or "DOUBLE" in datatype or "DECIMAL" in datatype:
