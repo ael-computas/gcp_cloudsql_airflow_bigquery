@@ -30,7 +30,7 @@ default_args = {
     'retry_delay': timedelta(minutes=1),
 }
 
-dag = DAG('copy_cloudsql_to_bigquery', default_args=default_args, concurrency=1)
+dag = DAG('copy_cloudsql_to_bigquery', default_args=default_args)
 dag.doc_md = __doc__
 
 
