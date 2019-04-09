@@ -249,7 +249,7 @@ def gen_fix_null_hack(table_config):
         params=table_config.params,
         bash_command="""
 gsutil cp gs://{{ params.export_bucket }}/{{ params.export_table }}_{{ ds_nodash }} - \
-| sed 's/,"N,/,"",/g' | sed 's/,"N,/,"",/g' | sed 's/^"N,/"",/g' | sed 's/,"N$/,""/g' | sed 's/\r"$/\\r/' \
+| sed 's/,"N,/,"",/g' | sed 's/,"N,/,"",/g' | sed 's/^"N,/"",/g' | sed 's/,"N$/,""/g' | sed 's/\\r"$/\\\\r/' \
 | gsutil cp - gs://{{ params.export_bucket }}/{{ params.export_table }}_{{ ds_nodash }}
         """,
         dag=dag)
