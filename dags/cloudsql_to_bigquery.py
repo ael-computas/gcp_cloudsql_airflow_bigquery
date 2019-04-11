@@ -98,19 +98,27 @@ def get_tables():
 
 
 def gen_export_table_task(table_config):
-    """
-    Create a export table task for the current table.  preserves table_config parameters for later use.
-    :return: a task to be used.
-    """
     export_script = BashOperator(
-                                task_id='export_{}_with_gcloud'.format(table_config.params['export_table']),
-                                params=table_config.params,
-                                bash_command="""
+        task_id='export_{}_with_gcloud'.format(table_config.params['export_table']),
+        params=table_config.params,
+        bash_command="""
+set -e
+rm -f link.txt
+
 gcloud --project {{ params.gcp_project }} sql export csv {{ params.cloud_sql_instance }} \
                             gs://{{ params.export_bucket }}/{{ params.export_table }}_{{ ds_nodash }} \
-                            --database={{ params.export_database }} --query="{{ params.export_query }}"
+                            --database={{ params.export_database }} --query="{{ params.export_query }}" \
+                            --async > link.txt
+
+echo "Export started, job id is:"
+cat link.txt
+link=$(cat link.txt)
+echo "Waiting for export operation to finish: (timeout=3600 seconds)"
+gcloud beta sql operations wait --timeout=3600 --project {{ params.gcp_project }} ${link##*/}
+echo "Table exported"
+
 """,
-                                dag=dag)
+        dag=dag)
     export_script.doc_md = """\
     #### Export table from cloudsql to cloud storage
     task documentation
