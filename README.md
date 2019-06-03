@@ -13,5 +13,9 @@ Each sync is a full table copy.  (this can be improved to use time/id in the syn
 2. Alter any credentials / etc you might need
 
 ### Sample of the job
+Version2
+![alt text](media/example2.png "airflow job")
+
+Version 1 (old)
 ![alt text](media/example1.png "airflow job")
 
