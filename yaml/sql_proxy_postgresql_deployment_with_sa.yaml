@@ -1,0 +1,78 @@
+# Copyright 2018 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# kubectl create secret --namespace=ut1 generic postgresql-ut1-key --from-file=key.json=sa.json
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    run: postgresql-sqlproxy-ut1
+  name: postgresql-sqlproxy-ut1
+  namespace: ut1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: postgresql-sqlproxy-ut1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: postgresql-sqlproxy-ut1
+    spec:
+      volumes:
+      - name: google-cloud-key
+        secret:
+          defaultMode: 420
+          secretName: postgresql-ut1-key  # dynamic (ex: postgresql-ut1-key)
+      - name: ssl-certs
+        hostPath:
+          path: /etc/ssl/certs
+      containers:
+      - env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
+        image: gcr.io/cloudsql-docker/gce-proxy:1.11
+        volumeMounts:
+        - name: ssl-certs
+          mountPath: /etc/ssl/certs
+        - name: google-cloud-key
+          mountPath: /var/secrets/google
+        command: ["/cloud_sql_proxy",
+          "-instances=PROJECT_ID:REGION:DATABASE=tcp:0.0.0.0:5432"]
+        imagePullPolicy: Always
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - netstat -tlnp | grep -i cloud_sql_proxy
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: postgresql-sqlproxy-ut1
+        ports:
+        - containerPort: 5432
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 30

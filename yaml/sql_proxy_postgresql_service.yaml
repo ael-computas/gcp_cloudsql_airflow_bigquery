@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    run: postgresql-sqlproxy-ut1
+  name: postgresql-sqlproxy-ut1-service
+  namespace: ut1
+spec:
+  ports:
+  - port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    run: postgresql-sqlproxy-ut1

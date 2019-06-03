@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    run: mysql-dvh-sqlproxy
+  name: mysql-dvh-sqlproxy-service
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+  selector:
+    run: mysql-dvh-sqlproxy
