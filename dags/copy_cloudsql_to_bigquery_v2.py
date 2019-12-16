@@ -28,9 +28,6 @@ dag.doc_md = __doc__
 
 
 class TableConfig:
-    STANDARD_EXPORT_QUERY = None
-    _STANDARD_EXPORT_QUERY = "SELECT * from {}"
-
     def __init__(self,
                  cloud_sql_instance,
                  export_bucket,
@@ -48,7 +45,7 @@ class TableConfig:
             'export_table': export_table,
             'export_bucket': export_bucket,
             'export_database': export_database,
-            'export_query': export_query or self._STANDARD_EXPORT_QUERY.format(export_table),
+            'export_query': export_query,
             'gcp_project': gcp_project,
             'stage_dataset': stage_dataset,
             'stage_table': stage_table or export_table,
@@ -64,21 +61,22 @@ def get_tables():
     In this example all 3 tables reside in the same cloud sql instance.
     :return:
     """
-    dim_tables = ["DimAge", "DimPerson"]
-    fact_tables = ["FactPerson"]
+    dim_tables = ["dim.DimAge", "dim.DimPerson"]
+    fact_tables = ["facts.FactPerson"]
     export_tables = dim_tables + fact_tables
     tables = []
     for dim in export_tables:
-        tables.append(TableConfig(cloud_sql_instance='CLOUD_SQL_INSTANCE_NAME',
-                                  export_table=dim,
-                                  export_bucket='YOUR_STAGING_BUCKET',
-                                  export_database='prod',
-                                  export_query=TableConfig.STANDARD_EXPORT_QUERY,
-                                  gcp_project="YOUR_PROJECT_ID",
-                                  stage_dataset="YOUR_STAGING_DATASET",
-                                  stage_table=None,
-                                  stage_final_query=None,
-                                  bq_location="EU"))
+        cfg = TableConfig(cloud_sql_instance='CLOUD_SQL_INSTANCE_NAME',
+                          export_table=dim.split(".")[-1],
+                          export_bucket='YOUR_STAGING_BUCKET',
+                          export_database=dim.split(".")[0],
+                          export_query="SELECT * from {}".format(dim),
+                          gcp_project="YOUR_PROJECT_ID",
+                          stage_dataset="YOUR_STAGING_DATASET",
+                          stage_table=None,
+                          stage_final_query=None,
+                          bq_location="EU")
+        tables.append(cfg)
     return tables
 
 def gen_export_table_task(table_config):
@@ -86,7 +84,7 @@ def gen_export_table_task(table_config):
                                                     dag=dag,
                                                     sql=table_config.params['export_query'],
                                                     bucket=table_config.params['export_bucket'],
-                                                    filename="cloudsql_to_bigquery/{}/{}".format(table_config.params['export_table'],
+                                                    filename="cloudsql_to_bigquery/{}/{}".format(table_config.params['export_database'],
                                                                                                  table_config.params['export_table']) + "_{}",
                                                     schema_filename="cloudsql_to_bigquery/schema/{}/schema_raw".format(table_config.params['export_table']),
                                                     mysql_conn_id="gcp_dvh_cloudsql")
@@ -101,7 +99,7 @@ def gen_import_table_task(table_config):
     import_task = GoogleCloudStorageToBigQueryOperator(
         task_id='{}_to_bigquery'.format(table_config.params['export_table']),
         bucket=table_config.params['export_bucket'],
-        source_objects=["cloudsql_to_bigquery/{}/{}*".format(table_config.params['export_table'],
+        source_objects=["cloudsql_to_bigquery/{}/{}*".format(table_config.params['export_database'],
                                                              table_config.params['export_table'])],
         destination_project_dataset_table="{}.{}.{}".format(table_config.params['gcp_project'],
                                                             table_config.params['stage_dataset'],
